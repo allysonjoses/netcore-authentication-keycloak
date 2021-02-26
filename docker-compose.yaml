@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  keycloak:
+    image: jboss/keycloak
+    container_name: keycloak-server
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_USER: "rchlo"
+      KEYCLOAK_PASSWORD: "123456"
