@@ -116,6 +116,7 @@ TODO
 Precisamos configurar nosso IdP! Para isso utilizaremos o docker-compose para subir o Keycloak localmente e futuramente também a nossa API.
 
 Crie um arquivo chamado `docker-compose.yaml` na raiz do repositório com o seguinte conteúdo:
+
 ```yaml
 version: '3'
 
@@ -129,6 +130,7 @@ services:
       KEYCLOAK_USER: "rchlo"
       KEYCLOAK_PASSWORD: "123456"
 ```
+
 Na mesma pasta onde o arquivo foi criado, execute o seguinte comando:
 
 `docker-compose up -d`
@@ -140,6 +142,8 @@ O Keycloak utiliza um sistema de realms para gerenciar conjuntos de usuários, c
 Quando logamos pela primeira vez em um servidor Keycloak entramos em um realm chamado master, esse realm é utilizado para adicionamos usuários com acesso administrativo ao servidor. Se pensarmos em nível de hierarquia, esse realm estaria acima dos demais.
 
 No menu inicial, vale destacar os seguintes itens:
+
+![Keycloak](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/3-menu_kc.png?raw=true)
 
 - Master – O realm em que estamos trabalhando; é fortemente recomendado que antes configurar nossa aplicação, seja criado antes um novo realm para os usuários que vão acessar o sistema.  Para criar esse novo realm, coloque o mouse sobre o Master, e clique em “Add realm” e crie um realm chamado "demo".
 
@@ -158,20 +162,21 @@ Nossa api será representada por um client. Nele iremos criar todas roles para p
 Clique na opção de menu `Clients` e em seguida em `Create` (canto direito da tela). Na tela de criação de clients, insira o valor **mktp-backoffice-api** no campo Client ID e na sequência em **Salvar**.
 
 Iremos realizar as seguintes mudanças em nosso client:
+
 - Access Type: definir como bearer-only. (Utilizamos o Access Type como bearer-only quando não precisamos realizar login através desse client)
 - Clique em salvar.
-
-
 
 Depois disso, iremos criar nossas roles, para isso, clique na aba `Roles` (não confundir com  a opção do menu principal) que fica abaixo do nome do Client no topo da página, posteriormente em Add Role, definindo **view-seller** como nome da role.
 
 Iremos trabalhar com dois cenários de acessos para a nossa api de backoffice.
+
 - API to API: Cenário quando outras apis acessam nossa api.
 - User to Api: Quando usuários acessam nossa api.
 
 Para que seja possível o cenário API to API, precisamos criar um client para a aplicação que acessará nossa api. Crie um novo client com o seguinte Client ID: `mktp-riachuelo-integration`.
 
 Iremos realizar as seguintes mudanças em nosso client:
+
 - Access Type: definir como confidential. (Secrets é necessário para o login)
 - Standard Flow Enabled: definir como OFF.
 - Implicit Flow Enabled: definir como OFF.
@@ -180,12 +185,135 @@ Iremos realizar as seguintes mudanças em nosso client:
 - Authorization Enabled: definir como ON.
 - Clique em salvar.
 
-...
-  token
-  Service Account
-  token
-  
-User
-  group
-Client frontend
-UserToken
+Iremos utilizar o Client Credential Grant Flow para gerar o token de acesso da aplicação `mktp-riachuelo-integration`. Segue o curl que precisamos utilizar:
+
+```bash
+curl --location --request POST 'http://localhost:8080/auth/realms/demo/protocol/openid-connect/token' \
+--header 'Authorization: Basic bWt0cC1yaWFjaHVlbG8taW50ZWdyYXRpb246NjNhYzYyNzktZGM1MC00ZmEyLWIyOGYtNTk2ZjFkNGVmZDJl' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'grant_type=client_credentials'
+```
+
+Destrinchando essa requisição temos:
+
+- URL: Essa url pode ser encontrada em: `Realm Settings` (Menu principal) -> `Endpoints: OpenID Endpoint Configuration` ou acessar o seguinte link: <http://localhost:8080/auth/realms/demo/.well-known/openid-configuration>. Nele encontraremos o token_endpoint que é url que precisamos utilizar para gerar nosso access token.
+- Authorization header: Precisamos do header Authorization do tipo basic, no seguinte formato: `Authorization: Basic {value}`. O value é composto pelo ClientID:Secrets do seu client, encodado em base 64. No nosso caso seria: `mktp-riachuelo-integration:63ac6279-dc50-4fa2-b28f-596f1d4efd2e` (não esquecer de encondar). O secrets do seu client será diferente deste do exemplo, para obte-lo, acesse o seu client e vá na aba `Credentials`.
+
+O Response da requisição deve ser algo parecido com isso:
+
+```json
+{
+"access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJQYkRQQlRYV1JINW9CUUhZX0dieWNOLUlBSGlkOXllUHl6RDlTMU1pN3JjIn0.eyJleHAiOjE2MTQzMDY5NzEsImlhdCI6MTYxNDMwNjY3MSwianRpIjoiMWVhNjI0OWYtMDY0Yy00ZGIyLWE0ODAtNDEwMTU3ODY4YTE1IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL2F1dGgvcmVhbG1zL2RlbW8iLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiZDE2Y2YwNDktNzcyZC00MTMxLTg2YTgtM2U3ZjNlZWI3Nzk3IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibWt0cC1yaWFjaHVlbG8taW50ZWdyYXRpb24iLCJhY3IiOiIxIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJta3RwLXJpYWNodWVsby1pbnRlZ3JhdGlvbiI6eyJyb2xlcyI6WyJ1bWFfcHJvdGVjdGlvbiJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiY2xpZW50SWQiOiJta3RwLXJpYWNodWVsby1pbnRlZ3JhdGlvbiIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiY2xpZW50SG9zdCI6IjE3Mi4xOC4wLjEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzZXJ2aWNlLWFjY291bnQtbWt0cC1yaWFjaHVlbG8taW50ZWdyYXRpb24iLCJjbGllbnRBZGRyZXNzIjoiMTcyLjE4LjAuMSJ9.IrATSri0ZEbrYhuH5kYZBq2edscczAdKf9HOksNMh2yEJLK2oZaka--Kf4dujS0JnwM1_LaVz3Od1WBBjCh8egjhd0vk-uPAC9_ev76CAS6Lbqni8kMBbXefxQn2oBf98uXnq4Dy1xK97xWyhTDvfr1XkeFL2yAT1nyDOKyIezp9jA0kIdmXDh69vnd3YuhTcE8adCbZmODPHXmZKJaMHH8ZOBNFLe2TNCrE-geioh3r-oN6HkmEe4GPTA3HuJTfKtOkGR5I8c5SWgpiJloqbpNw9jHv-nCxZ9TMibXprqTImLFGDmze1uLyPc5V5IU5EMBN6Iy2SZ6pMsGghbV3rA",
+  "expires_in": 300,
+  "refresh_expires_in": 0,
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "scope": "email profile"
+}
+```
+
+Vamos usar o site <https://jwt.io> para visualizar o nosso access token:
+
+```json
+{
+  "exp": 1614306971,
+  "iat": 1614306671,
+  "jti": "1ea6249f-064c-4db2-a480-410157868a15",
+  "iss": "http://localhost:8080/auth/realms/demo",
+  "aud": "account",
+  "sub": "d16cf049-772d-4131-86a8-3e7f3eeb7797",
+  "typ": "Bearer",
+  "azp": "mktp-riachuelo-integration",
+  "acr": "1",
+  "realm_access": {
+    "roles": [
+      "offline_access",
+      "uma_authorization"
+    ]
+  },
+  "resource_access": {
+    "mktp-riachuelo-integration": {
+      "roles": [
+        "uma_protection"
+      ]
+    },
+    "account": {
+      "roles": [
+        "manage-account",
+        "manage-account-links",
+        "view-profile"
+      ]
+    }
+  },
+  "scope": "email profile",
+  "clientId": "mktp-riachuelo-integration",
+  "email_verified": false,
+  "clientHost": "172.18.0.1",
+  "preferred_username": "service-account-mktp-riachuelo-integration",
+  "clientAddress": "172.18.0.1"
+}
+```
+
+Agora precisamos conceder acesso a role que criamos no `client mktp-backoffice-api` para o client `mktp-riachuelo-integration`. Para isso, abra o client `mktp-riachuelo-integration` e em seguida a aba `Service Account Roles`.
+
+![Service Account Roles](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/4-service-account-roles.png?raw=true)
+
+No select `Client Roles`, selecione `mktp-backoffice-api` e em seguida selecione a role `view-seller` e clique em `Add selected`.
+
+![Service Account Roles](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/4.1-service-account-roles-add-role.png?raw=true)
+
+Feito isso, realize novamente a chamada de obtenção do token e em seguida abra-o no https://jwt.io. Veja como ficou o nosso token:
+
+```json
+{
+  "exp": 1614311770,
+  "iat": 1614311470,
+  "jti": "3ceeb6c7-f79f-4034-9864-f6db74d78345",
+  "iss": "http://default-host:8080/auth/realms/demo",
+  "aud": [
+    "mktp-backoffice-api",
+    "account"
+  ],
+  "sub": "d16cf049-772d-4131-86a8-3e7f3eeb7797",
+  "typ": "Bearer",
+  "azp": "mktp-riachuelo-integration",
+  "acr": "1",
+  "realm_access": {
+    "roles": [
+      "offline_access",
+      "uma_authorization"
+    ]
+  },
+  "resource_access": {
+    "mktp-riachuelo-integration": {
+      "roles": [
+        "uma_protection"
+      ]
+    },
+    "mktp-backoffice-api": {
+      "roles": [
+        "view-seller"
+      ]
+    },
+    "account": {
+      "roles": [
+        "manage-account",
+        "manage-account-links",
+        "view-profile"
+      ]
+    }
+  },
+  "scope": "email profile",
+  "clientId": "mktp-riachuelo-integration",
+  "email_verified": false,
+  "clientHost": "172.18.0.1",
+  "preferred_username": "service-account-mktp-riachuelo-integration",
+  "clientAddress": "172.18.0.1"
+}
+```
+
+Observe o conteúdo das linhas 26 a 30. Agora temos a presença do role do `client mktp-backoffice-api` em nosso token. Atenção para o formato default que o Keycloak utiliza para expor as roles, iremos conversar sobre ele em breve!
+
+Agora que já sabemos como trabalhar para conceder acesso de uma aplicação, para outra aplicação, precisamos fazemos o mesmo para os usuários.
+
+TODO explicação User (role, group, e criação de um client para o frontend)
