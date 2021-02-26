@@ -35,9 +35,9 @@ Nessa aplicação, utilizaremos o [Keycloak](https://www.keycloak.org/) como pro
 - [Authorization Code Grant Flow detail (macro)](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/2.3-authorization-code-illustration.jpeg?raw=true)
 - [Client Credential Flow detail (macro)](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/2.2-client_flow-illustration.jpeg?raw=true)
 
-Para gente, nos resta a obrigação de validar os tokens de acessos gerados pelo Keycloak e autorizar o acesso as informações protegidas do nosso domínio (existem inumeras formas para isso, ex: claims, scopes, roles etc).
+Para gente, nos resta a obrigação de validar os tokens de acessos gerados pelo Keycloak e autorizar o acesso às informações protegidas do nosso domínio (existem inúmeras formas para isso, ex: claims, scopes, roles etc).
 
-Para isso, iremos instalar a dependência necessária para trabalharmos com tokens JTW.
+Para isso, iremos instalar a dependência necessária para trabalharmos com tokens JWT.
 
 `
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer -v 3.1.12
@@ -74,19 +74,17 @@ services.AddAuthentication(options =>
 });
 ```
 
-Isso é toda a configuração necessário que precisamos para sermos capazes de receber tokens JWT nos headers de nossas requisições e validados. Vamos por partes:
-1. `AddAuthentication(...)`:
- TODO
+Essa é toda a configuração necessária que precisamos para receber e validar tokens JWT nos headers de nossas requisições. Vamos por partes:
 
-2. `AddJwtBearer(...)`:
- TODO
+1. `AddAuthentication(...)`: Utilizaremos esse método para definir nossa autenticação. No nosso caso iremos utilizar o Jwt Bearer.
 
-3. `Configuration["Authentication: ..."]`
- Estamos parametrizando as entradas, com o intuito de facilitar nossas configurações! para isso, precisamos adicionar o seguinte bloco no arquivo `appsettings.json`:
+2. `AddJwtBearer(...)`: Após informado a forma de autenticação no passo anterior, iremos configurar as opções do JWT bearer.
+
+3. `Configuration["Authentication: ..."]`: Estamos parametrizando as entradas, com o intuito de facilitar nossas configurações! para isso, precisamos adicionar o seguinte bloco no arquivo `appsettings.json`:
 
 ```json
   "Authentication": {
-    "RequireHttpsMetadata": true,
+    "RequireHttpsMetadata": false,
     "Authority": "your-authority",
     "IncludeErrorDetails": true,
     "ValidateAudience": true,
@@ -98,18 +96,9 @@ Isso é toda a configuração necessário que precisamos para sermos capazes de 
   }
 ```
 
-4. `options.Authority`
-TODO
+4. `options.TokenValidationParameters`: Objeto que contem  todas as opções de configuração de validação do nosso token
 
-
-5. `options.TokenValidationParameters`
- TODO
-
-6. `ValidAudience`
- TODO
-
-7. `ValidIssuer`
- TODO
+5. `ValidIssuer`: Endereço do emissor do token.
 
 #### Setup do Keycloak
 
@@ -135,7 +124,7 @@ Na mesma pasta onde o arquivo foi criado, execute o seguinte comando:
 
 `docker-compose up -d`
 
-Com isso, será baixado a imagem do keycloak, criado uma container com o nome keycloak-server, o qual será executado localmente na porta 8080. Acesse http://localhost:8080/auth/admin para entrarmos na area logada. O login e senha são os valores definidos nas linhas 10 e 11 do nosso docker-compose.
+Com isso, será baixado a imagem do keycloak, criando-se assim, um container com o nome keycloak-server, o qual será executado localmente na porta 8080. Acesse http://localhost:8080/auth/admin para entrarmos na área logada. O login e senha são os valores definidos nas linhas 10 e 11 do nosso docker-compose.
 
 O Keycloak utiliza um sistema de realms para gerenciar conjuntos de usuários, credenciais, funções e grupos. Um usuário pertence e efetua login em um realm. Os realms são isolados uns dos outros e só podem gerenciar e autenticar os usuários que controlam.
 
@@ -145,9 +134,9 @@ No menu inicial, vale destacar os seguintes itens:
 
 ![Keycloak](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/3-menu_kc.png?raw=true)
 
-- Master – O realm em que estamos trabalhando; é fortemente recomendado que antes configurar nossa aplicação, seja criado antes um novo realm para os usuários que vão acessar o sistema.  Para criar esse novo realm, coloque o mouse sobre o Master, e clique em “Add realm” e crie um realm chamado "demo".
+- Master – O realm em que estamos trabalhando. É fortemente recomendado que antes configurar nossa aplicação, seja criado antes um novo realm para os usuários que vão acessar o sistema.  Para criar esse novo realm, coloque o mouse sobre o Master, e clique em “Add realm” e crie um realm chamado "demo".
 
-- Realms Settings – Página de configuração do realm, aqui podemos configurar o nome do realm, as informações que serão mostrado ao usuário na tela de login, configurar o provedor de email para confirmação de usuário, entre outras coisas.
+- Realms Settings – Página de configuração do realm. Aqui podemos configurar o nome do realm, as informações que serão mostrado ao usuário na tela de login, configurar o provedor de email para confirmação de usuário, entre outras coisas.
 
 - Clients – Clients são as aplicações que usam o keycloak como provedor de autenticação.
 
@@ -312,8 +301,77 @@ Feito isso, realize novamente a chamada de obtenção do token e em seguida abra
 }
 ```
 
-Observe o conteúdo das linhas 26 a 30. Agora temos a presença do role do `client mktp-backoffice-api` em nosso token. Atenção para o formato default que o Keycloak utiliza para expor as roles, iremos conversar sobre ele em breve!
+Observe o conteúdo das **linhas 26 a 30**. Agora temos a presença do role do `client mktp-backoffice-api` em nosso token. Atenção para o formato default que o Keycloak utiliza para expor as roles, iremos conversar sobre ele em breve!
 
-Agora que já sabemos como trabalhar para conceder acesso de uma aplicação, para outra aplicação, precisamos fazemos o mesmo para os usuários.
+Agora que já sabemos como trabalhar para conceder acesso de uma aplicação, para outra aplicação, precisamos fazer o mesmo para os usuários.
 
-TODO explicação User (role, group, e criação de um client para o frontend)
+Clique na opção de menu `Users` e em seguida em `Add user` (canto direito da tela). Na tela de criação de Users, preencha as informações do seu usuário e deixe como ON as opções `Email Verifie`d e `User Enabled`.
+
+Você pode definir a senha do seu usuário, ou enviar um e-mail de reset de senha na aba Credentials (O SMTP precisaria está configurado).
+
+Podemos conceder acesso ao recurso `view-seller` de nossa api de backoffice de duas maneiras: - Através da aba `Role Mappings` (a dinamica funciona igual o Service Account Roles do client, primeiro, selecione o client e em seguida as roles e clique em add selected).
+- Através da aba `Groups`, aqui você precisará possuir um grupo que esteja associado as roles que você necessite. Em `Available Groups`, clique em um dos grupos listados e posteriormente em `Join`. (Você pode criar e gerenciar grupos através no menu principal `Groups`).
+
+A forma como iremos autenticar nossos usuários muda um pouco em comparação a api. Na api, não precisamos de uma interface, a proópria aplicação obtem o token através de uma chamada rest, entretanto, não podemos exigir o mesmo de um usuário! Para ele precisamos disponibilizar uma tela de login, mas não se preocupe, o Keycloak já nos dá uma pronta (E você pode personaliza-la como quiser).
+
+Imagine que o nossa api de backoffice terá também um frontend, o qual irá disponilizar para o usuário todas as features que possuimos em nossa api. Dessa forma, o pensamento padrão seria a utilização do client que já possuímos no Keycloak, o `mktp-backoffice-api` para servir como client também para o frontend, porém, isso não é nada recomendando! 
+
+O frontend é uma aplicação "insegura", logo não é possível armazenar o secrets do nosso client com segurança em nosso frontend! Por isso, temos um tipo de `Client Access Type` específico para esse cenário; o `public`. Como ele, não necessitamos do secrets para iniciar o login! Para isso, necessitamos também trabalhar com outro Authorization Flow, o `Implicit` ou `Authorization Code`. Recomendo a utilização do `Authorization Code` com [`PKCE`](https://oauth.net/2/pkce/).
+
+Vamos criar um client para a aplicação de frontend. Crie um novo client com o seguinte Client ID: `mktp-backoffice-frontend`.
+
+Iremos realizar as seguintes mudanças em nosso client:
+
+- Access Type: definir como public.
+- Standard Flow Enabled: definir como ON.
+- Implicit Flow Enabled: definir como OFF.
+- Direct Access Grants Enabled: definir como OFF.
+- Valid Redirect URIs: definir como `*`. (Atenção, é de suma importância a configuração correta das uris de redirect permitidas pela sua aplicação! Usaremos * apenas para fins didáticos).
+- Web Origins: definir como `*`. (Atenção, é de suma importância a configuração correta por sua aplicação! Usaremos * apenas para fins didáticos).
+- Clique em salvar.
+
+Agora, seremos capazes de autenticar o usuário via browser! Nosso frontend irá implementar o Authorizantion Code e quando o usuário não estiver autenticado, o mesmo será redirecionado para:
+
+http://localhost:8080/auth/realms/demo/protocol/openid-connect/auth?response_type=code&state=&client_id=mktp-backoffice-frontend&scope=profile&redirect_uri=http%3A%2F%2Flocalhost%3A3000
+
+O usuário inputará seu login e senha e em seguida, será redirecionado de volta para a sua aplicação (`redirect_uri`) com o query parameter `code`. O frontend irá trocar assim, esse code pelo token do usuário realizando uma chamada no endpoint de token:
+
+```bash
+curl --location --request POST 'http://localhost:8080/auth/realms/demo/protocol/openid-connect/token' \
+--header 'Authorization: Basic bWt0cC1iYWNrb2ZmaWNlLWZyb250ZW5kOg==' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'code=f7112040-f8e5-420e-9942-2af35fc6e27d.92506486-2d64-4f46-9728-d3efc7839564.9c3945cd-38e8-4ed5-8bb2-8c1616569e59' \
+--data-urlencode 'redirect_uri=http://localhost:3000' \
+--data-urlencode 'client_id=mktp-backoffice-frontend'
+```
+
+Notem que agora, diferentemente do flow de `Client Credentials`, não precisamos da figura do secrets para gerar o token! Pode parecer um pouco complexo de início, porém, existem diversas bibliotecas disponíveis realizam o "trabalho sujo" no frontend, nos economizando tanto o tempo de implementação da tela de login, assim como, diminuindo a complexidade de utilizar o Authorization Code!
+
+#### De volta para a API
+
+Agora que somos capazes de gerar tokens, já podemos utilizalos em nossa aplicação! Primeiramente, precisamos atualizar nosso arquivo appsettings.json:
+
+```json
+ "Authentication": {
+    "RequireHttpsMetadata": false,
+    "Authority": "http://localhost:8080/auth/realms/demo",
+    "IncludeErrorDetails": true,
+    "ValidateAudience": true,
+    "ValidAudience": "mktp-backoffice-api",
+    "ValidateIssuerSigningKey": true,
+    "ValidateIssuer": true,
+    "ValidIssuer": "http://localhost:8080/auth/realms/demo",
+    "ValidateLifetime": true
+  }
+```
+
+Notem que definimos os seguintes campos: `Authority`, `ValidAudience`, `ValidIssuer`.
+
+Agora criaremos um Controller novo, chamado SellerController
+Criar um controller com endpoints protegidos
+
+...
+Tudo certo? Ainda não... Lembram do formato default que o Keycloak usa na claim que lista as roles? Pois é, por default, o dotnet não trabalha com o mesmo formato ... (TODO)
+
+Trabalhar o conceito de Multitenancy (TODO)
