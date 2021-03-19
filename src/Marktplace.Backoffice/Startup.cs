@@ -1,6 +1,8 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,6 +43,17 @@ namespace Marktplace.Backoffice
                     ValidIssuer = Configuration["Authentication:ValidIssuer"],
                     ValidateLifetime = bool.Parse(Configuration["Authentication:ValidateLifetime"])
                 };
+
+                options.Events = new JwtBearerEvents()
+                {
+                    OnAuthenticationFailed = e =>
+                    {
+                        e.NoResult();
+                        e.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
         }
 
@@ -52,11 +65,10 @@ namespace Marktplace.Backoffice
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
-
+            app.UseAuthentication();
             app.UseRouting();
-
             app.UseAuthorization();
+            app.UseStaticFiles();
 
             app.UseEndpoints(endpoints =>
             {

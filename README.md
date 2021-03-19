@@ -40,7 +40,7 @@ Para gente, nos resta a obrigação de validar os tokens de acessos gerados pelo
 Para isso, iremos instalar a dependência necessária para trabalharmos com tokens JWT.
 
 `
-dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer -v 3.1.12
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer -v 3.1.0
 `
 
 Agora iremos adicionar os seguintes usings no arquivo `Startup.cs` presente na pasta raiz de nossa aplicação.
@@ -76,11 +76,15 @@ services.AddAuthentication(options =>
 
 Essa é toda a configuração necessária que precisamos para receber e validar tokens JWT nos headers de nossas requisições. Vamos por partes:
 
-1. `AddAuthentication(...)`: Utilizaremos esse método para definir nossa autenticação. No nosso caso iremos utilizar o Jwt Bearer.
+- `AddAuthentication(...)`: Utilizaremos esse método para definir nossa autenticação. No nosso caso iremos utilizar o Jwt Bearer.
 
-2. `AddJwtBearer(...)`: Após informado a forma de autenticação no passo anterior, iremos configurar as opções do JWT bearer.
+- `AddJwtBearer(...)`: Após informado a forma de autenticação no passo anterior, iremos configurar as opções do JWT bearer.
 
-3. `Configuration["Authentication: ..."]`: Estamos parametrizando as entradas, com o intuito de facilitar nossas configurações! para isso, precisamos adicionar o seguinte bloco no arquivo `appsettings.json`:
+- `Authority`: é o endereço do servidor de autenticação que emite o token. O middleware de portador do JWT usa esse URI para obter a chave pública que pode ser usada para validar a assinatura do token. O middleware também confirma se o parâmetro iss no token corresponde a esse URI
+
+- `Audience`: representa o receptor do token ou do recurso de entrada ao qual o token concede acesso. Se o valor especificado nesse parâmetro não corresponder ao parâmetro no token, o token será rejeitado
+
+- `Configuration["Authentication: ..."]`: Estamos parametrizando as entradas, com o intuito de facilitar nossas configurações! para isso, precisamos adicionar o seguinte bloco no arquivo `appsettings.json`:
 
 ```json
   "Authentication": {
@@ -96,9 +100,11 @@ Essa é toda a configuração necessária que precisamos para receber e validar 
   }
 ```
 
-4. `options.TokenValidationParameters`: Objeto que contem  todas as opções de configuração de validação do nosso token
+- `options.TokenValidationParameters`: Objeto que contem  todas as opções de configuração de validação do nosso token
 
-5. `ValidIssuer`: Endereço do emissor do token.
+- `ValidIssuer`: Endereço do emissor do token.
+
+Com este middleware em vigor, os tokens JWT são extraídos automaticamente dos cabeçalhos de autorização. Eles são desserializados, validados (usando os valores nos parâmetros Audience e Authority) e armazenados como informações de usuário a serem referenciadas posteriormente por ações de MVC ou filtros de autorização.
 
 #### Setup do Keycloak
 
@@ -161,6 +167,8 @@ Iremos trabalhar com dois cenários de acessos para a nossa api de backoffice.
 
 - API to API: Cenário quando outras apis acessam nossa api.
 - User to Api: Quando usuários acessam nossa api.
+
+##### Client Credentials flow
 
 Para que seja possível o cenário API to API, precisamos criar um client para a aplicação que acessará nossa api. Crie um novo client com o seguinte Client ID: `mktp-riachuelo-integration`.
 
@@ -302,6 +310,8 @@ Feito isso, realize novamente a chamada de obtenção do token e em seguida abra
 ```
 
 Observe o conteúdo das **linhas 26 a 30**. Agora temos a presença do role do `client mktp-backoffice-api` em nosso token. Atenção para o formato default que o Keycloak utiliza para expor as roles, iremos conversar sobre ele em breve!
+
+##### Authorization Code flow
 
 Agora que já sabemos como trabalhar para conceder acesso de uma aplicação, para outra aplicação, precisamos fazer o mesmo para os usuários.
 
