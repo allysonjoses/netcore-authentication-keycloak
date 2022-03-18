@@ -2,7 +2,7 @@
 
 Poc utilizando .net core 3.1 para o uso de autorização através do [Keycloak](https://www.keycloak.org/ "Keycloak").
 
-Iremos simular uma aplicação que faz a gestão backoffice de um marketplace. Nesse cenário, precisamos proteger nossos endpoints e além disso, validar se o usuário está "abaixo do guarda-chuva" do recurso que pretente utilizar. Para isso, trabalharemos com um conceito de **Multitenancy**.
+Iremos simular uma aplicação que faz a gestão backoffice de um marketplace. Nesse cenário, precisamos proteger nossos endpoints e além disso, validar se o usuário está "abaixo do guarda-chuva" do recurso que pretende utilizar. Para isso, trabalharemos com um conceito de **Multitenancy**.
 
 Para fins didáticos, o código está o mais enxuto e simples possível. A ideia principal é focarmos no tema de autenticação/autorização.
 
@@ -29,7 +29,7 @@ Para certificar que está tudo ok, iremos realizar um restore e build :
 `
 ### Cara, crachá
 
-Nessa aplicação, utilizaremos o [Keycloak](https://www.keycloak.org/) como provedor de indentidade (IdP). Consequentemente ele será o responsável por autenticar nossos usuários e ou aplicações. Vou deixar aqui algumas ilustrações que facilitará o nosso entendimento:
+Nessa aplicação, utilizaremos o [Keycloak](https://www.keycloak.org/) como provedor de identidade (IdP). Consequentemente ele será o responsável por autenticar nossos usuários e ou aplicações. Vou deixar aqui algumas ilustrações que facilitará o nosso entendimento:
 - [Authorizations flows types](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/2-authorization-flows-overview.jpg?raw=true)
 - [Authorization Code Flow detail (micro)](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/2.1-authorization-code-flow.jpg?raw=true)
 - [Authorization Code Grant Flow detail (macro)](https://github.com/allysonjoses/netcore-authentication-keycloak/blob/main/docs/images/2.3-authorization-code-illustration.jpeg?raw=true)
